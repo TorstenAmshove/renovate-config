@@ -1,0 +1,5 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  // This repository is managed with its own presets, too (validate.yml actions).
+  extends: ["local>TorstenAmshove/renovate-config"],
+}

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Repositories that build a container image and release it to GHCR on every merged PR.",
+    "Use together with the default preset."
+  ],
+  "packageRules": [
+    {
+      "description": "Every FROM is digest-pinned, so upstream rebuilds (security fixes) of an unchanged tag become PRs.",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "pinDigests": true
+    },
+    {
+      "description": "Base-image digest updates: auto-merge without waiting time (equivalent to the former daily Dependabot run without cooldown). The PR build + smoke test is the gate.",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
+      "minimumReleaseAge": null,
+      "automerge": true
+    },
+    {
+      "description": "Anything that ends up in the image is a fix: the merge creates a patch release, which ansible-docker.lan picks up.",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "semanticCommitType": "fix"
+    },
+    {
+      "description": "Python runtime dependencies end up in the image as well.",
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "semanticCommitType": "fix"
+    },
+    {
+      "description": "...except development requirements (tests, linters).",
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "matchFileNames": [
+        "**/requirements-dev.txt"
+      ],
+      "semanticCommitType": "chore"
+    }
+  ]
+}

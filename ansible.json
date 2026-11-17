@@ -1,0 +1,36 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Ansible repositories: pinned lint tooling in .github/workflows/*.yml.",
+    "Use together with the default preset."
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "pip pins inside GitHub workflows, e.g. pip install \"ansible-core==2.22.0\"",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": ["\"(?<depName>[A-Za-z0-9_.-]+)==(?<currentValue>[0-9][^\"\\s]*)\""],
+      "datasourceTemplate": "pypi"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "ansible-core, ansible-lint, yamllint and the lint job's Python version must stay compatible, so they move together in one PR, majors included. CI only, never the managed hosts: auto-merged when the lint job passes with the new versions.",
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["ansible-core", "ansible-lint", "yamllint"],
+      "groupName": "lint tooling",
+      "semanticCommitType": "ci",
+      "separateMajorMinor": false,
+      "automerge": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["uses-with"],
+      "matchDepNames": ["python"],
+      "groupName": "lint tooling",
+      "semanticCommitType": "ci",
+      "separateMajorMinor": false,
+      "automerge": true
+    }
+  ]
+}

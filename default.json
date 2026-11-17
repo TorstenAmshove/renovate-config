@@ -1,0 +1,87 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Shared base for all TorstenAmshove repositories (Mend Renovate App, free tier, GitHub Free).",
+    "Rationale for every rule: README.md of this repository."
+  ],
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "timezone": "Europe/Berlin",
+  "assignees": ["TorstenAmshove"],
+  "labels": ["dependencies"],
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 10,
+  "configMigration": true,
+  "platformAutomerge": false,
+  "automergeType": "pr",
+  "minimumReleaseAge": "3 days",
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": ["dependencies", "security"],
+    "minimumReleaseAge": null,
+    "schedule": ["at any time"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* * 1 * *"],
+    "automerge": true,
+    "semanticCommitType": "fix"
+  },
+  "packageRules": [
+    {
+      "description": "Majors: always a separate PR, never auto-merged. The PR (with assignee) is what triggers a GitHub notification.",
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Patch, digest and pin updates are auto-merged by Renovate once all PR checks are green.",
+      "matchUpdateTypes": ["patch", "digest", "pin", "pinDigest"],
+      "automerge": true
+    },
+    {
+      "description": "npm: longer release age as supply-chain protection (compromised releases are usually pulled within days).",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "npm minor updates: one grouped PR per week. Auto-merge is opted into per repository.",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "npm minor updates",
+      "schedule": ["* * * * 1"]
+    },
+    {
+      "description": "pip minor updates: one grouped PR per week. Auto-merge is opted into per repository.",
+      "matchManagers": ["pip_requirements"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "pip minor updates",
+      "schedule": ["* * * * 1"]
+    },
+    {
+      "description": "GitHub Actions: one monthly PR for all non-major updates (auto-merged), one for majors (manual). Release workflows ignore .github/**, so these never trigger a release.",
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["action"],
+      "groupName": "github-actions",
+      "semanticCommitType": "ci",
+      "schedule": ["* * 1 * *"],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["action"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Runtime versions in workflows (setup-python/setup-node) are owned by the repository presets/configs that need them.",
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["uses-with"],
+      "semanticCommitType": "ci"
+    }
+  ]
+}
