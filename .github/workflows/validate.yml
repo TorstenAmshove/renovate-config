@@ -12,10 +12,10 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Validate presets
-        run: npx --yes --package renovate -- renovate-config-validator --strict default.json container.json ansible.json
+        run: npx --yes --package renovate@44.248.1 -- renovate-config-validator --strict default.json container.json ansible.json

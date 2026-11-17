@@ -7,11 +7,17 @@
   "extends": [
     "config:recommended",
     ":semanticCommits",
-    "helpers:pinGitHubActionDigests"
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests",
+    ":pinAllExceptPeerDependencies"
   ],
   "timezone": "Europe/Berlin",
-  "assignees": ["TorstenAmshove"],
-  "labels": ["dependencies"],
+  "assignees": [
+    "TorstenAmshove"
+  ],
+  "labels": [
+    "dependencies"
+  ],
   "prHourlyLimit": 0,
   "prConcurrentLimit": 10,
   "configMigration": true,
@@ -21,67 +27,192 @@
   "minimumReleaseAgeBehaviour": "timestamp-optional",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
-    "labels": ["dependencies", "security"],
+    "labels": [
+      "dependencies",
+      "security"
+    ],
     "minimumReleaseAge": null,
-    "schedule": ["at any time"]
+    "schedule": [
+      "at any time"
+    ]
   },
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["* * 1 * *"],
+    "schedule": [
+      "* * 1 * *"
+    ],
     "automerge": true,
     "semanticCommitType": "fix"
   },
   "packageRules": [
     {
+      "description": "Pinning (exact versions, digests) changes nothing at runtime, so pin updates are auto-merged. A repository that excludes packages from auto-merge must re-enable it for pin/pinDigest after its exclusion rule (later rules win).",
+      "matchUpdateTypes": [
+        "pin",
+        "pinDigest"
+      ],
+      "automerge": true
+    },
+    {
       "description": "Majors: always a separate PR, never auto-merged. The PR (with assignee) is what triggers a GitHub notification.",
-      "matchUpdateTypes": ["major"],
-      "addLabels": ["major"],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "addLabels": [
+        "major"
+      ],
       "automerge": false
     },
     {
       "description": "Patch, digest and pin updates are auto-merged by Renovate once all PR checks are green.",
-      "matchUpdateTypes": ["patch", "digest", "pin", "pinDigest"],
+      "matchUpdateTypes": [
+        "patch",
+        "digest",
+        "pin",
+        "pinDigest"
+      ],
       "automerge": true
     },
     {
       "description": "npm: longer release age as supply-chain protection (compromised releases are usually pulled within days).",
-      "matchDatasources": ["npm"],
+      "matchDatasources": [
+        "npm"
+      ],
       "minimumReleaseAge": "7 days"
     },
     {
       "description": "npm minor updates: one grouped PR per week. Auto-merge is opted into per repository.",
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor"
+      ],
       "groupName": "npm minor updates",
-      "schedule": ["* * * * 1"]
+      "schedule": [
+        "* * * * 1"
+      ]
     },
     {
       "description": "pip minor updates: one grouped PR per week. Auto-merge is opted into per repository.",
-      "matchManagers": ["pip_requirements"],
-      "matchUpdateTypes": ["minor"],
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "matchUpdateTypes": [
+        "minor"
+      ],
       "groupName": "pip minor updates",
-      "schedule": ["* * * * 1"]
+      "schedule": [
+        "* * * * 1"
+      ]
     },
     {
       "description": "GitHub Actions: one monthly PR for all non-major updates (auto-merged), one for majors (manual). Release workflows ignore .github/**, so these never trigger a release.",
-      "matchManagers": ["github-actions"],
-      "matchDepTypes": ["action"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "action"
+      ],
       "groupName": "github-actions",
       "semanticCommitType": "ci",
-      "schedule": ["* * 1 * *"],
+      "schedule": [
+        "* * 1 * *"
+      ],
       "minimumReleaseAge": "7 days"
     },
     {
-      "matchManagers": ["github-actions"],
-      "matchDepTypes": ["action"],
-      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "action"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
       "automerge": true
     },
     {
       "description": "Runtime versions in workflows (setup-python/setup-node) are owned by the repository presets/configs that need them.",
-      "matchManagers": ["github-actions"],
-      "matchDepTypes": ["uses-with"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "uses-with"
+      ],
       "semanticCommitType": "ci"
+    },
+    {
+      "description": "Runtime versions that appear both in an image and in a workflow (Dockerfile FROM + setup-node/setup-python) move together.",
+      "matchDepNames": [
+        "node"
+      ],
+      "matchManagers": [
+        "dockerfile",
+        "github-actions"
+      ],
+      "groupName": "node runtime",
+      "semanticCommitType": "fix"
+    },
+    {
+      "matchDepNames": [
+        "python"
+      ],
+      "matchManagers": [
+        "dockerfile",
+        "github-actions"
+      ],
+      "groupName": "python runtime",
+      "semanticCommitType": "fix"
+    },
+    {
+      "description": "nginx: only stable releases (even minor version); odd minors are the mainline branch.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "nginx",
+        "docker.io/library/nginx"
+      ],
+      "allowedVersions": "/^\\d+\\.\\d*[02468]\\.\\d+(-|$)/"
+    },
+    {
+      "description": "GitHub-hosted runners (runs-on: ubuntu-26.04): a new image version is a major change, like any other major.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepTypes": [
+        "github-runner"
+      ],
+      "semanticCommitType": "ci"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Version pins annotated with a comment in the line above: `# renovate: datasource=<datasource> depName=<name> [versioning=<versioning>]`, followed by `key: \"1.2.3\"` (YAML) or `ARG/ENV NAME=1.2.3` (Dockerfile).",
+      "managerFilePatterns": [
+        "/\\.ya?ml$/",
+        "/(^|/)Dockerfile[^/]*$/"
+      ],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(\\s+versioning=(?<versioning>\\S+))?\\s*\\n\\s*[\\w.-]+:\\s*[\"']?(?<currentValue>[^\"'\\s]+)[\"']?",
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(\\s+versioning=(?<versioning>\\S+))?\\s*\\n\\s*(ARG|ENV)\\s+[A-Za-z0-9_]+=[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"
+      ]
+    },
+    {
+      "customType": "regex",
+      "description": "npm packages run via npx in GitHub workflows, e.g. `npx --yes --package renovate@44.248.1 -- ...`",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "npx\\s+(--yes\\s+)?--package\\s+(?<depName>(@[a-z0-9-]+/)?[a-z0-9._-]+)@(?<currentValue>\\d[^\\s]*)"
+      ],
+      "datasourceTemplate": "npm"
     }
   ]
 }
