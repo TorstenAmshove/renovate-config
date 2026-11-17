@@ -37,10 +37,37 @@ Die Config liegt bewusst unter `.github/`: Die Release-Workflows ignorieren `.gi
 |---|---|
 | **Major** | Eigener PR, Label `major`, nie Auto-Merge. Der PR (mit Assignee) löst die GitHub-Benachrichtigung aus – ein neuer Eintrag im *Dependency Dashboard* allein tut das nicht, weil GitHub bei Änderungen am Issue-Text nicht benachrichtigt. Nicht gewollte Majors: PR schließen, Renovate schlägt diese Major-Version dann nicht erneut vor. |
 | **Minor** | npm und pip: ein gruppierter PR pro Woche (montags). Auto-Merge nur, wenn das Repo es selbst einschaltet (ausreichende Tests). Andere Ökosysteme: einzelne PRs, manuell. |
-| **Patch, Digest, Pin** | Auto-Merge, sobald alle Checks grün sind. |
+| **Patch, Digest** | Auto-Merge, sobald alle Checks grün sind. |
+| **Pin** (exakte Version / Digest ergänzen) | Immer Auto-Merge, ändert zur Laufzeit nichts. Repos mit Ausschlusslisten müssen Pin danach wieder erlauben (siehe ansible-docker.lan). |
 | **GitHub Actions** | Monatlich (am 1.), ein Sammel-PR für alles außer Majors (Auto-Merge) und einer für Majors (manuell), 7 Tage Mindestalter, Commit-Typ `ci`. Actions bleiben auf Commit-SHA gepinnt (`helpers:pinGitHubActionDigests`). |
 | **Lockfile-Maintenance** | Monatlich (am 1.), Auto-Merge, Commit-Typ `fix` (aktualisiert transitive Abhängigkeiten, die ins Image gehen). |
 | **Sicherheitslücken** | Sofort, ohne Mindestalter und Zeitplan, Label `security` (GitHub-Dependabot-Alerts + OSV). |
+
+Feste Versionen überall:
+
+- **Docker-Images**: exakte Version + Digest (`node:26.13.1-alpine@sha256:…`, `docker:pinDigests`).
+  Versions-Updates kommen als lesbare PRs (`26.13.1 → 26.14.0`), Neubauten desselben Tags
+  (Sicherheitsfixes im Basissystem) als Digest-PRs. Kein `latest`, `lts`, `stable`: Bei solchen
+  Tags sieht Renovate nur Digests, ein Major-Sprung wäre ein unsichtbarer, automatisch gemergter
+  Digest-Wechsel.
+- **Node**: Renovates `node`-Versionierung zählt ungerade und noch nicht LTS gewordene Majors als
+  instabil – es kommen nur LTS-Majors, als eigener PR.
+- **nginx**: nur Stable-Versionen (gerade Minor-Version), Mainline (ungerade) wird ignoriert.
+- **Laufzeit-Versionen gemeinsam**: `node`/`python` in Dockerfile und in `setup-node`/
+  `setup-python` (Workflows) bilden je eine Gruppe „node runtime“/„python runtime“.
+- **Runner**: `runs-on: ubuntu-26.04` statt `ubuntu-latest`; ein neues Runner-Image ist ein Major.
+- **npm/pip-Ranges** werden auf exakte Versionen gepinnt (`:pinAllExceptPeerDependencies`).
+- **Annotierte Pins** (Regex-Manager für alle `*.yml`/`*.yaml` und Dockerfiles):
+
+  ```yaml
+  # renovate: datasource=npm depName=@mgcrea/mcp-unifi-network
+  unifi_mcp_version: "0.5.1"
+  ```
+  ```dockerfile
+  # renovate: datasource=github-tags depName=agl/jbig2enc
+  ARG JBIG2ENC_VERSION=0.29
+  ```
+- **npx in Workflows**: `npx --package renovate@44.248.1 -- …` wird ebenfalls aktualisiert.
 
 Allgemein:
 
@@ -59,8 +86,6 @@ Allgemein:
 
 ## `container.json`
 
-- Jedes `FROM` im Dockerfile ist digest-gepinnt. Neu gebaute Upstream-Images mit Sicherheitsfixes
-  werden so zu PRs, auch wenn sich das Tag nicht ändert.
 - Base-Image-Digest-Updates: Auto-Merge ohne Mindestalter. Build und Smoke-Test des PRs sind das
   Gate.
 - Commit-Typ `fix` → Patch-Release → `ansible-docker.lan` übernimmt das neue Image-Tag (Patch,
