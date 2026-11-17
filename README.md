@@ -22,6 +22,12 @@ Jedes Repository hat nur eine kleine `.github/renovate.json5`:
 Die Config liegt bewusst unter `.github/`: Die Release-Workflows ignorieren `.github/**`, eine
 Änderung an der Renovate-Config erzeugt so kein neues Image.
 
+**Ausnahme Forks** (HomeAtlas): Bei einem Fork prüft Renovate `forkProcessing` nur in
+`renovate.json` im Repo-Root, bevor es irgendeine andere Config-Datei liest. Dort muss die Config
+deshalb als `renovate.json` (reines JSON) im Root liegen, mit `"forkProcessing": "enabled"`, und
+`renovate.json` gehört in die `paths-ignore` des Release-Workflows. Eine Datei unter `.github/`
+wird bei Forks ignoriert, das Repo erscheint im Mend-Portal dann als „deaktiviert“.
+
 | Preset | Datei | Genutzt von |
 |---|---|---|
 | `local>TorstenAmshove/renovate-config` | `default.json` | alle |
